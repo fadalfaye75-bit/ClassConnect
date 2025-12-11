@@ -5,6 +5,7 @@ import { Role, Exam } from '../types';
 import { CalendarDays, Clock, MapPin, Trash2, Plus, Download, Pencil, AlertCircle, X, Send, Copy } from 'lucide-react';
 import { format, isSameWeek, addMinutes, isAfter } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { sanitizeForCSV } from '../services/security';
 
 export const DS: React.FC = () => {
   const { user, exams, addExam, updateExam, deleteExam, shareResource, addNotification } = useApp();
@@ -98,13 +99,13 @@ export const DS: React.FC = () => {
     if (displayedExams.length === 0) return;
     const headers = ['Matière', 'Jour', 'Date', 'Heure', 'Durée (min)', 'Salle', 'Notes'];
     const rows = displayedExams.map(e => [
-      e.subject, 
-      format(new Date(e.date), 'EEEE', { locale: fr }), // Ajout de la colonne Jour
+      sanitizeForCSV(e.subject), 
+      format(new Date(e.date), 'EEEE', { locale: fr }), 
       format(new Date(e.date), 'dd/MM/yyyy'), 
       format(new Date(e.date), 'HH:mm'), 
       e.durationMinutes, 
-      e.room, 
-      e.notes || ''
+      sanitizeForCSV(e.room), 
+      sanitizeForCSV(e.notes || '')
     ]);
     const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);

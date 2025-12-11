@@ -11,6 +11,7 @@ const Meet = React.lazy(() => import('./pages/Meet').then(module => ({ default: 
 const DS = React.lazy(() => import('./pages/DS').then(module => ({ default: module.DS })));
 const Polls = React.lazy(() => import('./pages/Polls').then(module => ({ default: module.Polls })));
 const AdminPanel = React.lazy(() => import('./pages/AdminPanel').then(module => ({ default: module.AdminPanel })));
+const Timetable = React.lazy(() => import('./pages/Timetable').then(module => ({ default: module.Timetable })));
 
 const LoadingScreen = () => (
   <div className="h-full w-full flex flex-col items-center justify-center min-h-[50vh] animate-in fade-in duration-300">
@@ -35,6 +36,7 @@ const Main: React.FC = () => {
       case 'ds': return <DS />;
       case 'polls': return <Polls />;
       case 'admin': return <AdminPanel />;
+      case 'timetable': return <Timetable />;
       default: return <Dashboard onNavigate={setCurrentPage} />;
     }
   };

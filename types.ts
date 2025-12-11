@@ -1,5 +1,4 @@
 
-
 export enum Role {
   ADMIN = 'ADMIN',            // Super Admin (Gère tout)
   RESPONSIBLE = 'RESPONSIBLE', // Responsable de classe (Gère sa classe)
@@ -11,6 +10,8 @@ export interface ClassGroup {
   name: string; // ex: DUT 2
   description?: string;
   email?: string; // Mailing list de la classe (ex: dut2@ecole.com)
+  timetableUrl?: string; // Lien vers le fichier/drive de l'emploi du temps
+  timetableLastUpdate?: string; // Date de dernière mise à jour
 }
 
 export interface User {
@@ -28,6 +29,14 @@ export enum Urgency {
   URGENT = 'URGENT',
 }
 
+export interface Attachment {
+  id: string;
+  name: string;
+  url: string; // Base64
+  type: string; // MIME type
+  size?: number;
+}
+
 export interface Announcement {
   id: string;
   title: string;
@@ -37,6 +46,12 @@ export interface Announcement {
   authorId: string;
   classId: string;
   durationHours?: number; // Durée de visibilité en heures (optionnel)
+  externalLink?: string; // Lien Google Form, Sheets, etc.
+  // Champs dépréciés (gardés pour rétrocompatibilité)
+  attachmentName?: string; 
+  attachmentUrl?: string; 
+  // Nouveau champ multi-fichiers
+  attachments?: Attachment[];
 }
 
 export interface MeetSession {

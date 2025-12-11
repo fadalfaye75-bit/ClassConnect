@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
@@ -33,7 +34,8 @@ import {
   Sun,
   Moon,
   Sparkles,
-  Bot
+  Bot,
+  Calendar
 } from 'lucide-react';
 import { Role, Notification } from '../types';
 import { formatDistanceToNow } from 'date-fns';
@@ -85,6 +87,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
   // Navigation Items (Desktop Sidebar)
   const navItems = [
     { id: 'dashboard', label: 'Aperçu', icon: LayoutDashboard, roles: [Role.ADMIN, Role.RESPONSIBLE, Role.STUDENT] },
+    { id: 'timetable', label: 'Emploi du temps', icon: Calendar, roles: [Role.ADMIN, Role.RESPONSIBLE, Role.STUDENT] },
     { id: 'infos', label: 'Annonces', icon: Megaphone, roles: [Role.ADMIN, Role.RESPONSIBLE, Role.STUDENT] },
     { id: 'meet', label: 'Visio', icon: Video, roles: [Role.ADMIN, Role.RESPONSIBLE, Role.STUDENT] },
     { id: 'ds', label: 'Examens', icon: CalendarDays, roles: [Role.ADMIN, Role.RESPONSIBLE, Role.STUDENT] },
@@ -350,11 +353,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
          </button>
 
          <button 
-           onClick={() => onNavigate('meet')} 
-           className={`flex flex-col items-center gap-1 p-2 rounded-xl transition ${currentPage === 'meet' ? 'text-[#87CEEB]' : 'text-slate-400'}`}
+           onClick={() => onNavigate('timetable')} 
+           className={`flex flex-col items-center gap-1 p-2 rounded-xl transition ${currentPage === 'timetable' ? 'text-[#87CEEB]' : 'text-slate-400'}`}
          >
-           <Video className={`w-6 h-6 ${currentPage === 'meet' ? 'fill-current' : ''}`} strokeWidth={2} />
-           <span className="text-[10px] font-bold">Meet</span>
+           <Calendar className={`w-6 h-6 ${currentPage === 'timetable' ? 'fill-current' : ''}`} strokeWidth={2} />
+           <span className="text-[10px] font-bold">Emploi</span>
          </button>
 
          <button 

@@ -1,8 +1,14 @@
 
 import React, { useState, useMemo, useEffect, useDeferredValue } from 'react';
 import { useApp } from '../context/AppContext';
-import { Role, Urgency, Announcement } from '../types';
-import { Megaphone, Trash2, Clock, Plus, X, ArrowUpDown, Filter, Send, Mail, User, AlertCircle, Timer, Search, Archive, Eye, Copy, ChevronLeft, ChevronRight, Pencil, School, Calendar, AlertTriangle, FileText, Info } from 'lucide-react';
+import { Role, Urgency, Announcement, Attachment } from '../types';
+import { 
+  Megaphone, Trash2, Clock, Plus, X, ArrowUpDown, Filter, Send, Mail, 
+  User, AlertCircle, Timer, Search, Archive, Copy, ChevronLeft, ChevronRight, 
+  Pencil, School, Calendar, AlertTriangle, FileText, Info, Link, Paperclip, 
+  ExternalLink, Download, Printer, FileImage, FileSpreadsheet, File as FileIcon, 
+  FileCode, FileVideo, Music 
+} from 'lucide-react';
 import { format, isAfter, isBefore, startOfDay, endOfDay, addHours } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { UserAvatar } from '../components/UserAvatar';
@@ -35,6 +41,20 @@ const URGENCY_CONFIG = {
   }
 };
 
+// Helper pour déterminer l'icône du fichier
+const getFileIcon = (filename: string) => {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext || '')) return <FileImage className="w-5 h-5 text-purple-500" />;
+  if (['pdf'].includes(ext || '')) return <FileText className="w-5 h-5 text-red-500" />;
+  if (['xlsx', 'xls', 'csv'].includes(ext || '')) return <FileSpreadsheet className="w-5 h-5 text-emerald-500" />;
+  if (['doc', 'docx', 'txt', 'rtf'].includes(ext || '')) return <FileText className="w-5 h-5 text-blue-500" />;
+  if (['mp4', 'mov', 'avi'].includes(ext || '')) return <FileVideo className="w-5 h-5 text-pink-500" />;
+  if (['mp3', 'wav'].includes(ext || '')) return <Music className="w-5 h-5 text-yellow-500" />;
+  if (['zip', 'rar'].includes(ext || '')) return <Archive className="w-5 h-5 text-orange-500" />;
+  if (['js', 'ts', 'html', 'css', 'json'].includes(ext || '')) return <FileCode className="w-5 h-5 text-slate-500" />;
+  return <FileIcon className="w-5 h-5 text-slate-400" />;
+};
+
 export const Infos: React.FC = () => {
   const { 
     user, 
@@ -57,24 +77,27 @@ export const Infos: React.FC = () => {
   // Share Confirmation State
   const [shareConfirmation, setShareConfirmation] = useState<Announcement | null>(null);
 
+  // Print Confirmation State
+  const [showPrintConfirm, setShowPrintConfirm] = useState(false);
+
   // Delete Confirmation State
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   // Sorting & Filtering State
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
-  const [showArchived, setShowArchived] = useState(false); // État pour voir les archives
+  const [showArchived, setShowArchived] = useState(false);
   
   // Real-time auto-hide
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 6; // Augmenté pour la grille
+  const ITEMS_PER_PAGE = 6;
   
   // Recherche (Optimisée)
   const [searchQuery, setSearchQuery] = useState('');
-  const deferredSearchQuery = useDeferredValue(searchQuery); // Fluidité de frappe
+  const deferredSearchQuery = useDeferredValue(searchQuery);
 
   // Filtres
   const [filterStartDate, setFilterStartDate] = useState('');
@@ -88,11 +111,15 @@ export const Infos: React.FC = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [urgency, setUrgency] = useState<Urgency>(Urgency.NORMAL);
-  const [durationHours, setDurationHours] = useState<number | ''>(''); // State for duration
+  const [durationHours, setDurationHours] = useState<number | ''>(''); 
+  const [externalLink, setExternalLink] = useState('');
+  
+  // Nouvel état pour les pièces jointes multiples
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   
   const [targetRoles, setTargetRoles] = useState<Role[]>([]);
 
-  // Permission globale pour créer (réservé aux responsables/admins dans ce contexte)
+  // Permission globale pour créer
   const canCreate = user?.role === Role.RESPONSIBLE || user?.role === Role.ADMIN;
   const isAdmin = user?.role === Role.ADMIN;
 
@@ -102,15 +129,13 @@ export const Infos: React.FC = () => {
   }, [isAdmin, announcements, user?.classId]);
 
   // --- REAL-TIME TIMER ---
-  // Met à jour l'heure actuelle toutes les minutes pour déclencher le masquage automatique
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000); // 1 minute
+    }, 60000); 
     return () => clearInterval(timer);
   }, []);
 
-  // Récupérer la liste unique des auteurs ayant posté des annonces (dans mon scope)
   const uniqueAuthors = useMemo(() => {
     const authorIds = Array.from(new Set(myAnnouncements.map(a => a.authorId)));
     return authorIds.map(id => users.find(u => u.id === id)).filter(Boolean);
@@ -122,7 +147,6 @@ export const Infos: React.FC = () => {
       const itemToOpen = myAnnouncements.find(a => a.id === highlightedItemId);
       if (itemToOpen) {
         setViewingItem(itemToOpen);
-        // Clear the highlight after opening so it doesn't reopen if we close and navigate back
         setHighlightedItemId(null);
       }
     }
@@ -139,6 +163,8 @@ export const Infos: React.FC = () => {
     setContent('');
     setUrgency(Urgency.NORMAL);
     setDurationHours('');
+    setExternalLink('');
+    setAttachments([]);
     setTargetRoles([]); 
     setIsModalOpen(true);
   };
@@ -149,6 +175,22 @@ export const Infos: React.FC = () => {
     setContent(item.content);
     setUrgency(item.urgency);
     setDurationHours(item.durationHours || '');
+    setExternalLink(item.externalLink || '');
+    
+    // Rétrocompatibilité : Si pas d'array attachments mais vieux champs, on convertit
+    if (item.attachments && item.attachments.length > 0) {
+      setAttachments(item.attachments);
+    } else if (item.attachmentName && item.attachmentUrl) {
+      setAttachments([{
+        id: 'legacy',
+        name: item.attachmentName,
+        url: item.attachmentUrl,
+        type: 'application/octet-stream' // fallback
+      }]);
+    } else {
+      setAttachments([]);
+    }
+
     setTargetRoles([]);
     setIsModalOpen(true);
   };
@@ -159,7 +201,12 @@ export const Infos: React.FC = () => {
       title, 
       content, 
       urgency,
-      durationHours: durationHours === '' ? undefined : Number(durationHours)
+      durationHours: durationHours === '' ? undefined : Number(durationHours),
+      externalLink: externalLink.trim() !== '' ? externalLink : undefined,
+      attachments: attachments, // Envoie le tableau
+      // Clean legacy fields if present
+      attachmentName: undefined,
+      attachmentUrl: undefined
     };
 
     if (editingId) {
@@ -187,12 +234,97 @@ export const Infos: React.FC = () => {
     }
   };
 
+  const handlePrint = () => {
+    setShowPrintConfirm(false);
+    setTimeout(() => {
+        window.print();
+    }, 200);
+  };
+
   const handleCopy = (item: Announcement) => {
-    const textToCopy = `${item.title.toUpperCase()}\n\n${item.content}`;
+    let textToCopy = `${item.title.toUpperCase()}\n\n${item.content}`;
+    if (item.externalLink) textToCopy += `\n\nLien : ${item.externalLink}`;
     navigator.clipboard.writeText(textToCopy).then(() => {
       addNotification("Annonce copiée dans le presse-papier", "SUCCESS");
     }).catch(() => {
       addNotification("Erreur lors de la copie", "ERROR");
+    });
+  };
+  
+  // --- MULTI-FILE UPLOAD HANDLER ---
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files);
+      const newAttachments: Attachment[] = [];
+      let processedCount = 0;
+
+      files.forEach((file: File) => {
+        if (file.size > 10 * 1024 * 1024) { // 10MB Limit per file
+           addNotification(`Fichier ${file.name} trop volumineux (Max 10Mo)`, "ERROR");
+           processedCount++;
+           if (processedCount === files.length) {
+             e.target.value = ''; // Reset input
+           }
+           return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (event.target?.result) {
+            newAttachments.push({
+              id: Math.random().toString(36).substr(2, 9),
+              name: file.name,
+              url: event.target.result as string,
+              type: file.type,
+              size: file.size
+            });
+          }
+          processedCount++;
+          // Une fois tous les fichiers traités, on met à jour l'état
+          if (processedCount === files.length) {
+             setAttachments(prev => [...prev, ...newAttachments]);
+             addNotification(`${newAttachments.length} fichier(s) ajouté(s)`, "SUCCESS");
+             e.target.value = ''; // Reset pour permettre de ré-uploader le même fichier si besoin
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const removeAttachment = (id: string) => {
+    setAttachments(prev => prev.filter(att => att.id !== id));
+  };
+
+  const handleDownloadAttachment = (att: Attachment) => {
+    if (!att.url) return;
+    const link = document.createElement('a');
+    link.href = att.url;
+    link.setAttribute('download', att.name);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    addNotification(`Téléchargement de ${att.name} lancé`, "SUCCESS");
+  };
+
+  // Fonction pour afficher du texte enrichi (simple)
+  const formatContent = (text: string) => {
+    // 1. Convertir les URLs en liens cliquables
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+    
+    return parts.map((part, index) => {
+        if (part.match(urlRegex)) {
+            return <a key={index} href={part} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline break-all" onClick={e => e.stopPropagation()}>{part}</a>;
+        }
+        // 2. Gérer le gras (**texte**)
+        const boldParts = part.split(/(\*\*.*?\*\*)/g);
+        return boldParts.map((subPart, subIndex) => {
+            if (subPart.startsWith('**') && subPart.endsWith('**')) {
+                return <strong key={`${index}-${subIndex}`}>{subPart.slice(2, -2)}</strong>;
+            }
+            return subPart;
+        });
     });
   };
 
@@ -217,7 +349,7 @@ export const Infos: React.FC = () => {
         }
       }
 
-      // 1. Recherche (Utilise deferredSearchQuery pour ne pas bloquer l'UI)
+      // 1. Recherche
       if (deferredSearchQuery.trim()) {
         const normalize = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         const query = normalize(deferredSearchQuery.trim());
@@ -229,7 +361,7 @@ export const Infos: React.FC = () => {
         }
       }
 
-      // 2. Filtre Date
+      // 2. Filtres Date, Urgence, Auteur, Classe...
       if (filterStartDate) {
         const start = startOfDay(new Date(filterStartDate));
         if (isBefore(itemDate, start)) return false;
@@ -238,14 +370,8 @@ export const Infos: React.FC = () => {
         const end = endOfDay(new Date(filterEndDate));
         if (isAfter(itemDate, end)) return false;
       }
-
-      // 3. Filtre Urgence
       if (filterUrgency !== 'ALL' && item.urgency !== filterUrgency) return false;
-
-      // 4. Filtre Auteur
       if (filterAuthorId !== 'ALL' && item.authorId !== filterAuthorId) return false;
-
-      // 5. Filtre Classe
       if (filterClassId !== 'ALL' && item.classId !== filterClassId) return false;
 
       return true;
@@ -259,16 +385,11 @@ export const Infos: React.FC = () => {
   const totalPages = Math.ceil(filteredAnnouncements.length / ITEMS_PER_PAGE);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
-
   const toggleSort = () => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
   
   const clearFilters = () => { 
-    setFilterStartDate(''); 
-    setFilterEndDate(''); 
-    setFilterUrgency('ALL');
-    setFilterAuthorId('ALL');
-    setFilterClassId('ALL');
-    setSearchQuery('');
+    setFilterStartDate(''); setFilterEndDate(''); setFilterUrgency('ALL');
+    setFilterAuthorId('ALL'); setFilterClassId('ALL'); setSearchQuery('');
   };
 
   return (
@@ -283,122 +404,44 @@ export const Infos: React.FC = () => {
         </div>
         
         <div className="flex flex-wrap gap-2 w-full md:w-auto">
-          <button 
-             onClick={() => setShowArchived(!showArchived)}
-             className={`p-3 rounded-2xl border transition flex items-center justify-center gap-2 active:scale-95 shadow-sm flex-1 md:flex-none ${showArchived ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-200 dark:border-amber-800' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50'}`}
-             title={showArchived ? "Masquer les archives" : "Voir les archives"}
-          >
-             <Archive className="w-5 h-5" />
-          </button>
-
-          <button 
-             onClick={toggleSort}
-             className="bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center gap-2 active:scale-95 shadow-sm flex-1 md:flex-none justify-center"
-             title={sortOrder === 'desc' ? "Plus récents d'abord" : "Plus anciens d'abord"}
-          >
-             <ArrowUpDown className="w-5 h-5" />
-          </button>
-          
-          <button 
-             onClick={() => setShowFilters(!showFilters)}
-             className={`p-3 rounded-2xl border transition flex items-center justify-center gap-2 active:scale-95 shadow-sm flex-1 md:flex-none ${showFilters ? 'bg-[#87CEEB]/20 text-[#0369A1] border-[#87CEEB]/40' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50'}`}
-          >
-             <Filter className="w-5 h-5" />
-          </button>
-
+          <button onClick={() => setShowArchived(!showArchived)} className={`p-3 rounded-2xl border transition flex items-center justify-center gap-2 active:scale-95 shadow-sm flex-1 md:flex-none ${showArchived ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-200 dark:border-amber-800' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50'}`} title={showArchived ? "Masquer les archives" : "Voir les archives"}><Archive className="w-5 h-5" /></button>
+          <button onClick={toggleSort} className="bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center gap-2 active:scale-95 shadow-sm flex-1 md:flex-none justify-center" title={sortOrder === 'desc' ? "Plus récents d'abord" : "Plus anciens d'abord"}><ArrowUpDown className="w-5 h-5" /></button>
+          <button onClick={() => setShowFilters(!showFilters)} className={`p-3 rounded-2xl border transition flex items-center justify-center gap-2 active:scale-95 shadow-sm flex-1 md:flex-none ${showFilters ? 'bg-[#87CEEB]/20 text-[#0369A1] border-[#87CEEB]/40' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50'}`}><Filter className="w-5 h-5" /></button>
+          <button onClick={() => setShowPrintConfirm(true)} className="bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center gap-2 active:scale-95 shadow-sm flex-1 md:flex-none justify-center" title="Imprimer la liste"><Printer className="w-5 h-5" /></button>
           {canCreate && (
-            <button 
-              onClick={openCreate}
-              className="w-full md:w-auto btn-primary text-white px-6 py-3 rounded-2xl font-bold active:scale-95 transition flex items-center justify-center gap-2 shadow-md shadow-[#87CEEB]/30"
-            >
+            <button onClick={openCreate} className="w-full md:w-auto btn-primary text-white px-6 py-3 rounded-2xl font-bold active:scale-95 transition flex items-center justify-center gap-2 shadow-md shadow-[#87CEEB]/30">
               <Plus className="w-5 h-5" /> <span>Publier</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Barre de recherche toujours visible */}
+      {/* Barre de recherche */}
       <div className="relative mb-8 group">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
           <Search className="h-5 w-5 text-slate-400 group-focus-within:text-[#87CEEB] transition-colors" />
         </div>
-        <input 
-          type="text" 
-          aria-label="Rechercher une annonce"
-          placeholder="Rechercher une annonce (titre, contenu)..." 
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="block w-full pl-11 pr-12 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-[#87CEEB]/20 focus:border-[#87CEEB] transition-all shadow-sm font-medium"
-        />
-        {searchQuery && (
-           <button 
-             onClick={() => setSearchQuery('')}
-             className="absolute inset-y-0 right-0 pr-3 flex items-center"
-           >
-             <div className="p-1 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-400 hover:text-red-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
-               <X className="w-4 h-4" />
-             </div>
-           </button>
-        )}
+        <input type="text" placeholder="Rechercher une annonce (titre, contenu)..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="block w-full pl-11 pr-12 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-[#87CEEB]/20 focus:border-[#87CEEB] transition-all shadow-sm font-medium" />
+        {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute inset-y-0 right-0 pr-3 flex items-center"><div className="p-1 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition"><X className="w-4 h-4" /></div></button>}
       </div>
 
       {showFilters && (
         <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 mb-6 flex flex-col gap-4 animate-in slide-in-from-top-2">
            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-             <div>
-                <label className="text-[10px] font-bold uppercase text-slate-400 mb-1.5 flex items-center gap-1"><Clock className="w-3 h-3"/> Du</label>
-                <input type="date" value={filterStartDate} onChange={e => setFilterStartDate(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm font-bold text-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-[#87CEEB]/30" />
-             </div>
-             <div>
-                <label className="text-[10px] font-bold uppercase text-slate-400 mb-1.5 flex items-center gap-1"><Clock className="w-3 h-3"/> Au</label>
-                <input type="date" value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm font-bold text-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-[#87CEEB]/30" />
-             </div>
-             <div>
-                <label className="text-[10px] font-bold uppercase text-slate-400 mb-1.5 flex items-center gap-1"><AlertCircle className="w-3 h-3"/> Urgence</label>
-                <select value={filterUrgency} onChange={e => setFilterUrgency(e.target.value as Urgency | 'ALL')} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm font-bold text-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-[#87CEEB]/30 appearance-none">
-                  <option value="ALL">Toutes</option>
-                  <option value={Urgency.INFO}>Info</option>
-                  <option value={Urgency.NORMAL}>Normal</option>
-                  <option value={Urgency.URGENT}>Urgent</option>
-                </select>
-             </div>
-             <div>
-                <label className="text-[10px] font-bold uppercase text-slate-400 mb-1.5 flex items-center gap-1"><User className="w-3 h-3"/> Auteur</label>
-                <select value={filterAuthorId} onChange={e => setFilterAuthorId(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm font-bold text-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-[#87CEEB]/30 appearance-none">
-                  <option value="ALL">Tous les auteurs</option>
-                  {uniqueAuthors.map(u => (
-                    <option key={u?.id} value={u?.id}>{u?.name}</option>
-                  ))}
-                </select>
-             </div>
-             <div>
-                <label className="text-[10px] font-bold uppercase text-slate-400 mb-1.5 flex items-center gap-1"><School className="w-3 h-3"/> Classe</label>
-                <select value={filterClassId} onChange={e => setFilterClassId(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm font-bold text-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-[#87CEEB]/30 appearance-none">
-                  <option value="ALL">Toutes les classes</option>
-                  {classes.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-             </div>
+             <div><label className="text-[10px] font-bold uppercase text-slate-400 mb-1.5 flex items-center gap-1"><Clock className="w-3 h-3"/> Du</label><input type="date" value={filterStartDate} onChange={e => setFilterStartDate(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm font-bold text-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-[#87CEEB]/30" /></div>
+             <div><label className="text-[10px] font-bold uppercase text-slate-400 mb-1.5 flex items-center gap-1"><Clock className="w-3 h-3"/> Au</label><input type="date" value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm font-bold text-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-[#87CEEB]/30" /></div>
+             <div><label className="text-[10px] font-bold uppercase text-slate-400 mb-1.5 flex items-center gap-1"><AlertCircle className="w-3 h-3"/> Urgence</label><select value={filterUrgency} onChange={e => setFilterUrgency(e.target.value as Urgency | 'ALL')} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm font-bold text-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-[#87CEEB]/30 appearance-none"><option value="ALL">Toutes</option><option value={Urgency.INFO}>Info</option><option value={Urgency.NORMAL}>Normal</option><option value={Urgency.URGENT}>Urgent</option></select></div>
+             <div><label className="text-[10px] font-bold uppercase text-slate-400 mb-1.5 flex items-center gap-1"><User className="w-3 h-3"/> Auteur</label><select value={filterAuthorId} onChange={e => setFilterAuthorId(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm font-bold text-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-[#87CEEB]/30 appearance-none"><option value="ALL">Tous les auteurs</option>{uniqueAuthors.map(u => (<option key={u?.id} value={u?.id}>{u?.name}</option>))}</select></div>
+             <div><label className="text-[10px] font-bold uppercase text-slate-400 mb-1.5 flex items-center gap-1"><School className="w-3 h-3"/> Classe</label><select value={filterClassId} onChange={e => setFilterClassId(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm font-bold text-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-[#87CEEB]/30 appearance-none"><option value="ALL">Toutes les classes</option>{classes.map(c => (<option key={c.id} value={c.id}>{c.name}</option>))}</select></div>
            </div>
-           <div className="flex justify-end pt-2 border-t border-slate-50 dark:border-slate-800">
-              <button onClick={clearFilters} className="text-xs text-red-500 font-bold hover:bg-red-50 dark:hover:bg-red-900/20 py-2 px-4 rounded-lg transition flex items-center gap-1">
-                 <X className="w-3 h-3" /> Réinitialiser les filtres
-              </button>
-           </div>
+           <div className="flex justify-end pt-2 border-t border-slate-50 dark:border-slate-800"><button onClick={clearFilters} className="text-xs text-red-500 font-bold hover:bg-red-50 dark:hover:bg-red-900/20 py-2 px-4 rounded-lg transition flex items-center gap-1"><X className="w-3 h-3" /> Réinitialiser les filtres</button></div>
         </div>
       )}
 
       {/* Compteur de résultats */}
       <div className="mb-4 px-2 flex justify-between items-center">
-         <span className="text-sm font-bold text-slate-500 dark:text-slate-400">
-            {filteredAnnouncements.length} annonce{filteredAnnouncements.length > 1 ? 's' : ''} {showArchived ? '(archives incluses)' : ''}
-         </span>
-         {showArchived && (
-            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
-               Mode Archives Actif
-            </span>
-         )}
+         <span className="text-sm font-bold text-slate-500 dark:text-slate-400">{filteredAnnouncements.length} annonce{filteredAnnouncements.length > 1 ? 's' : ''} {showArchived ? '(archives incluses)' : ''}</span>
+         {showArchived && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">Mode Archives Actif</span>}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -415,6 +458,11 @@ export const Infos: React.FC = () => {
            const isExpired = expirationDate ? isAfter(currentTime, expirationDate) : false;
            const style = URGENCY_CONFIG[item.urgency];
            const UrgencyIcon = style.icon;
+           const isUrgent = item.urgency === Urgency.URGENT;
+           
+           // Gestion hybride (nouveau système 'attachments' ou ancien fallback)
+           const hasAttachments = (item.attachments && item.attachments.length > 0) || !!item.attachmentName;
+           const attachmentCount = item.attachments ? item.attachments.length : (item.attachmentName ? 1 : 0);
 
            return (
             <div 
@@ -423,13 +471,19 @@ export const Infos: React.FC = () => {
               className={`
                 bg-white dark:bg-slate-900 rounded-[2rem] border relative overflow-hidden flex flex-col
                 group cursor-pointer transition-all duration-300 
-                hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-none
-                ${style.border} ${isExpired ? 'opacity-60 grayscale-[0.8]' : ''}
+                hover:-translate-y-1 
+                ${isUrgent 
+                  ? 'shadow-lg shadow-red-500/10 hover:shadow-red-500/20 border-red-200 dark:border-red-800 ring-1 ring-red-500/20' 
+                  : `hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-none shadow-sm ${style.border}`
+                }
+                ${isExpired ? 'opacity-60 grayscale-[0.8]' : ''}
               `}
             >
+              {isUrgent && <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500 z-10"></div>}
+
               {/* Header avec métadonnées */}
-              <div className={`px-6 py-4 flex items-center justify-between ${style.bg} border-b ${style.border}`}>
-                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide border shadow-sm ${style.badge} ${style.border}`}>
+              <div className={`px-6 py-4 flex items-center justify-between ${style.bg} border-b ${style.border} ${isUrgent ? 'pl-7' : ''}`}>
+                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide border shadow-sm ${style.badge} ${style.border} ${isUrgent ? 'animate-pulse' : ''}`}>
                       <UrgencyIcon className="w-3.5 h-3.5" />
                       {style.label}
                   </div>
@@ -449,14 +503,30 @@ export const Infos: React.FC = () => {
               </div>
 
               {/* Contenu Principal */}
-              <div className="p-6 flex-1 flex flex-col">
+              <div className={`p-6 flex-1 flex flex-col ${isUrgent ? 'pl-7' : ''}`}>
                  <h3 className={`text-xl font-bold mb-3 line-clamp-2 leading-snug group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors ${style.color}`}>
                     {isExpired && <span className="text-red-500 text-sm mr-2">[EXPIRÉ]</span>}
                     {item.title}
                  </h3>
-                 <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed line-clamp-3 mb-6 font-medium">
-                    {item.content}
+                 <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed line-clamp-3 mb-6 font-medium whitespace-pre-wrap">
+                    {formatContent(item.content)}
                  </p>
+                 
+                 {/* Attachments & Links Preview (Small) */}
+                 {(item.externalLink || hasAttachments) && (
+                    <div className="flex gap-2 mb-4">
+                        {item.externalLink && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-bold rounded-lg border border-indigo-100 dark:border-indigo-800">
+                                <Link className="w-3 h-3" /> Lien
+                            </span>
+                        )}
+                        {hasAttachments && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700">
+                                <Paperclip className="w-3 h-3" /> {attachmentCount} P.J.
+                            </span>
+                        )}
+                    </div>
+                 )}
 
                  {/* Footer : Auteur et Actions */}
                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-800">
@@ -509,7 +579,7 @@ export const Infos: React.FC = () => {
                     <div className="flex-1">
                        <h3 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white leading-tight mb-3">{viewingItem.title}</h3>
                        <div className="flex flex-wrap items-center gap-3">
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-widest border ${viewingItem.urgency === 'URGENT' ? 'bg-red-50 text-red-600 border-red-200' : viewingItem.urgency === 'INFO' ? 'bg-sky-50 text-[#0369A1] border-sky-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>{viewingItem.urgency}</span>
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-widest border ${viewingItem.urgency === 'URGENT' ? 'bg-red-50 text-red-600 border-red-200 animate-pulse' : viewingItem.urgency === 'INFO' ? 'bg-sky-50 text-[#0369A1] border-sky-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>{viewingItem.urgency}</span>
                           <span className="text-slate-500 font-bold text-sm flex items-center gap-2">par {users.find(u => u.id === viewingItem.authorId)?.name}</span>
                           <span className="text-slate-300 font-light text-sm hidden md:inline">•</span>
                           <span className="text-slate-400 font-medium text-sm flex items-center gap-1 capitalize"><Clock className="w-3 h-3" /> {format(new Date(viewingItem.date), 'EEEE dd MMM yyyy à HH:mm', { locale: fr })}</span>
@@ -517,7 +587,50 @@ export const Infos: React.FC = () => {
                        {viewingItem.durationHours && (<p className="text-xs text-orange-500 font-bold mt-2 flex items-center gap-1"><Timer className="w-3 h-3"/> Expire après {viewingItem.durationHours}h</p>)}
                     </div>
                  </div>
-                 <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed text-lg whitespace-pre-wrap font-medium">{viewingItem.content}</div>
+                 <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed text-lg whitespace-pre-wrap font-medium">
+                    {formatContent(viewingItem.content)}
+                 </div>
+                 
+                 {/* Attachments & Links in View Modal */}
+                 <div className="mt-8 flex flex-col gap-3">
+                     {viewingItem.externalLink && (
+                         <a href={viewingItem.externalLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition group">
+                             <div className="p-2 bg-indigo-100 dark:bg-indigo-800 rounded-lg text-indigo-600 dark:text-indigo-300"><ExternalLink className="w-5 h-5" /></div>
+                             <div className="flex-1">
+                                 <p className="text-sm font-bold text-indigo-900 dark:text-indigo-200">Lien externe</p>
+                                 <p className="text-xs text-indigo-600 dark:text-indigo-400 truncate">{viewingItem.externalLink}</p>
+                             </div>
+                         </a>
+                     )}
+                     
+                     {/* Affichage des pièces jointes (Multiple ou Single Legacy) */}
+                     {(viewingItem.attachments && viewingItem.attachments.length > 0) ? (
+                        <div className="space-y-2">
+                           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Pièces jointes ({viewingItem.attachments.length})</p>
+                           {viewingItem.attachments.map((att, idx) => (
+                              <button key={idx} onClick={() => handleDownloadAttachment(att)} className="w-full flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/80 transition text-left group">
+                                 <div className="p-2 bg-white dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm group-hover:scale-110 transition-transform">
+                                    {getFileIcon(att.name)}
+                                 </div>
+                                 <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{att.name}</p>
+                                    <p className="text-[10px] text-slate-400 font-medium">Cliquez pour télécharger</p>
+                                 </div>
+                                 <Download className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition" />
+                              </button>
+                           ))}
+                        </div>
+                     ) : viewingItem.attachmentName && ( // Fallback pour les anciennes données
+                        <button onClick={() => handleDownloadAttachment({ id: 'legacy', name: viewingItem.attachmentName!, url: viewingItem.attachmentUrl!, type: 'file' })} className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/80 transition text-left group w-full">
+                             <div className="p-2 bg-slate-200 dark:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300"><Download className="w-5 h-5" /></div>
+                             <div className="flex-1">
+                                 <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Fichier joint</p>
+                                 <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{viewingItem.attachmentName}</p>
+                             </div>
+                         </button>
+                     )}
+                 </div>
+
                  <div className="mt-10 pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
                     <button onClick={() => handleCopy(viewingItem)} className="px-5 py-3 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-700 transition flex items-center gap-2"><Copy className="w-4 h-4"/> <span className="hidden md:inline">Copier le texte</span></button>
                     <button onClick={() => setViewingItem(null)} className="px-8 py-3 bg-[#0EA5E9] text-white font-bold rounded-2xl hover:bg-[#0284C7] shadow-lg shadow-[#87CEEB]/30 transition">Fermer</button>
@@ -535,6 +648,19 @@ export const Infos: React.FC = () => {
               <div className="flex gap-4">
                  <button onClick={() => setShareConfirmation(null)} className="flex-1 py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-700 transition">Annuler</button>
                  <button onClick={handleConfirmShare} className="flex-1 py-3.5 bg-emerald-500 text-white font-bold rounded-2xl hover:bg-emerald-600 transition shadow-lg shadow-emerald-500/20">Envoyer</button>
+              </div>
+           </div>
+        </div>
+      )}
+      {showPrintConfirm && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[180] flex items-center justify-center p-4 animate-in fade-in">
+           <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-sm p-6 text-center border border-slate-100 dark:border-slate-800 transform transition-all scale-100">
+              <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm"><Printer className="w-8 h-8" /></div>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">Imprimer la liste ?</h3>
+              <p className="text-slate-500 dark:text-slate-400 font-medium mb-6">Voulez-vous imprimer ou enregistrer en PDF la liste des annonces actuelles ?</p>
+              <div className="flex gap-3">
+                 <button onClick={() => setShowPrintConfirm(false)} className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition">Annuler</button>
+                 <button onClick={handlePrint} className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-500/20">Imprimer</button>
               </div>
            </div>
         </div>
@@ -574,8 +700,49 @@ export const Infos: React.FC = () => {
                     <div className="flex justify-between items-center mb-2">
                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Contenu</label>
                     </div>
-                    <textarea required value={content} onChange={e => setContent(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-base min-h-[200px] focus:ring-4 focus:ring-[#87CEEB]/20 focus:border-[#0EA5E9] outline-none transition leading-relaxed text-slate-800 dark:text-white placeholder-slate-400 font-medium resize-none" placeholder="Détails de l'annonce..." />
+                    <textarea required value={content} onChange={e => setContent(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-base min-h-[150px] focus:ring-4 focus:ring-[#87CEEB]/20 focus:border-[#0EA5E9] outline-none transition leading-relaxed text-slate-800 dark:text-white placeholder-slate-400 font-medium resize-none" placeholder="Détails de l'annonce..." />
                  </div>
+
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Lien externe (Google Form, etc.)</label>
+                        <div className="relative">
+                            <Link className="absolute left-4 top-4 w-5 h-5 text-slate-400" />
+                            <input type="url" value={externalLink} onChange={e => setExternalLink(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 pl-12 text-base font-bold focus:ring-4 focus:ring-[#87CEEB]/20 focus:border-[#0EA5E9] outline-none transition text-slate-800 dark:text-white placeholder-slate-400" placeholder="https://..." />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Fichiers (Documents, Images)</label>
+                        <div className="relative group">
+                            <div className="absolute left-4 top-4 w-5 h-5 text-slate-400 group-hover:text-[#0EA5E9] transition-colors"><Paperclip /></div>
+                            {/* Input multiple files */}
+                            <input 
+                              type="file" 
+                              multiple 
+                              onChange={handleFileUpload} 
+                              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl p-3.5 pl-12 text-sm text-slate-600 dark:text-slate-300 focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#0EA5E9]/10 file:text-[#0EA5E9] hover:file:bg-[#0EA5E9]/20 cursor-pointer" 
+                            />
+                        </div>
+                        
+                        {/* Liste des fichiers sélectionnés */}
+                        {attachments.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                             {attachments.map((att, idx) => (
+                               <div key={att.id || idx} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 animate-in slide-in-from-top-2">
+                                  <div className="flex items-center gap-2 overflow-hidden">
+                                     {getFileIcon(att.name)}
+                                     <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate max-w-[150px]">{att.name}</span>
+                                  </div>
+                                  <button type="button" onClick={() => removeAttachment(att.id)} className="p-1 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 rounded transition">
+                                     <X className="w-3 h-3" />
+                                  </button>
+                               </div>
+                             ))}
+                          </div>
+                        )}
+                    </div>
+                 </div>
+
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Niveau d'urgence</label>

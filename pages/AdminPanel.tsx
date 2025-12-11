@@ -6,6 +6,7 @@ import { Users, Shield, Trash2, Plus, Pencil, Save, AlertTriangle, Download, Upl
 import { format, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { UserAvatar } from '../components/UserAvatar';
+import { isValidEmail } from '../services/security';
 
 export const AdminPanel: React.FC = () => {
   const { 
@@ -213,6 +214,12 @@ export const AdminPanel: React.FC = () => {
 
   const handleCreateUser = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isValidEmail(userEmail)) {
+      addNotification("L'adresse email est invalide.", "ERROR");
+      return;
+    }
+
     const payload = {
         name: userName,
         email: userEmail,
@@ -259,6 +266,11 @@ export const AdminPanel: React.FC = () => {
         const [name, email, roleStr, className] = line.split(',').map(s => s.trim());
         if (!name || !email) { errorCount++; continue; }
 
+        if (!isValidEmail(email.replace(/"/g, ''))) {
+          errorCount++;
+          continue;
+        }
+
         let role = Role.STUDENT;
         if (roleStr?.toUpperCase() === 'ADMIN') role = Role.ADMIN;
         if (roleStr?.toUpperCase() === 'RESPONSIBLE') role = Role.RESPONSIBLE;
@@ -284,7 +296,7 @@ export const AdminPanel: React.FC = () => {
 
       if (usersToImport.length > 0) {
         await importUsers(usersToImport);
-        if (errorCount > 0) addNotification(`Importé ${usersToImport.length}. ${errorCount} erreurs.`, "WARNING");
+        if (errorCount > 0) addNotification(`Importé ${usersToImport.length}. ${errorCount} erreurs/emails invalides.`, "WARNING");
       } else {
         addNotification("Aucun utilisateur valide trouvé.", "ERROR");
       }

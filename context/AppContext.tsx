@@ -1,5 +1,4 @@
 
-
 import React, { createContext, useContext, useState, PropsWithChildren, useMemo, useEffect, useCallback } from 'react';
 import { User, Announcement, Exam, Poll, Role, MeetSession, ClassGroup, AuditLog, Notification, PollOption, SentEmail, EmailConfig, AppContextType } from '../types';
 import { supabase } from '../services/supabaseClient';
@@ -7,6 +6,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { INITIAL_CLASSES, INITIAL_USERS, INITIAL_ANNOUNCEMENTS, INITIAL_MEETS, INITIAL_EXAMS, INITIAL_POLLS } from '../constants';
 import { sendEmail } from '../services/emailService';
+import { hashString, ADMIN_HASH } from '../services/security';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -98,13 +98,7 @@ export const AppProvider: React.FC<PropsWithChildren> = ({ children }) => {
       if (Date.now() - lastActivity > INACTIVITY_TIMEOUT) {
         logout();
         // Notification après logout pour expliquer
-        // Note: state user sera null, mais notification sera ajoutée au prochain render ou via mécanisme global si nécessaire
-        // Ici on use un petit hack: setTimeout pour addNotif après le flush state logout
         setTimeout(() => {
-             // On utilise directement l'alerte native ou une notif persistante si possible, 
-             // mais ici addNotification fonctionne dans le contexte.
-             // Cependant, logout() clear le user, l'app redirige vers login.
-             // Idéalement, on stocke "reason=timeout" dans sessionStorage et Login.tsx l'affiche.
              sessionStorage.setItem('logout_reason', 'inactivity');
         }, 100);
       }
@@ -263,17 +257,17 @@ export const AppProvider: React.FC<PropsWithChildren> = ({ children }) => {
         return false;
       }
 
-      // 2. Password Check Logic
-      // Note: In a real app, use Supabase Auth or hashed passwords.
-      // Here we implement the requirement: Admin='passer25', others > 4 chars.
+      // 2. Password Check Logic - SECURED
+      // Admin: Check against hash. Others: Simple length check (for demo/legacy support)
+      // Note: In a production migration, all users would use Supabase Auth.
       if (password) {
           if (matchedUser.role === Role.ADMIN) {
-              if (password !== 'passer25') return false;
+              const hash = await hashString(password);
+              if (hash !== ADMIN_HASH) return false;
           } else {
               if (password.length < 4) return false;
           }
       } else {
-          // If no password provided but required by UI (should not happen if UI is correct)
           return false;
       }
 
@@ -503,7 +497,7 @@ export const AppProvider: React.FC<PropsWithChildren> = ({ children }) => {
   };
 
   // --- SHARE FUNCTION (EMAIL with SendGrid Support) ---
-  const shareResource = async (type: 'ANNOUNCEMENT' | 'MEET' | 'EXAM' | 'POLL', item: any) => {
+  const shareResource = async (type: 'ANNOUNCEMENT' | 'MEET' | 'EXAM' | 'POLL' | 'TIMETABLE', item: any) => {
     if (!user) return;
 
     const currentClass = getCurrentClass();
@@ -548,6 +542,10 @@ export const AppProvider: React.FC<PropsWithChildren> = ({ children }) => {
       case 'POLL':
         subject = `[${schoolName}] Sondage : Votre avis compte`;
         body = `Bonjour,\r\n\r\nUn nouveau sondage nécessite votre attention :\r\n\r\n"${item.question}"\r\n\r\nConnectez-vous à la plateforme pour voter.${footer}`;
+        break;
+      case 'TIMETABLE':
+        subject = `[${schoolName}] Emploi du temps de la semaine`;
+        body = `Bonjour,\r\n\r\nL'emploi du temps de la semaine a été mis à jour.\r\n\r\n🔗 Vous pouvez le consulter ici : ${item.url}\r\n\r\nBonne semaine !${footer}`;
         break;
     }
 
@@ -639,8 +637,8 @@ export const AppProvider: React.FC<PropsWithChildren> = ({ children }) => {
   };
 
   const updateClass = async (id: string, item: Partial<ClassGroup>) => {
-    if (user?.role !== Role.ADMIN) {
-        addNotification("Action réservée à l'administrateur", "ERROR");
+    if (user?.role !== Role.ADMIN && user?.role !== Role.RESPONSIBLE) { // Permettre aux responsables de màj certaines infos si nécessaire
+        addNotification("Action non autorisée", "ERROR");
         return;
     }
     const payload: any = {};
@@ -649,6 +647,8 @@ export const AppProvider: React.FC<PropsWithChildren> = ({ children }) => {
     if (item.email !== undefined) {
       payload.email = item.email && item.email.trim() !== '' ? item.email : null;
     }
+    if (item.timetableUrl !== undefined) payload.timetable_url = item.timetableUrl;
+    if (item.timetableLastUpdate !== undefined) payload.timetable_last_update = item.timetableLastUpdate;
 
     const { error } = await supabase.from('classes').update(payload).eq('id', id);
 
