@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, PropsWithChildren, useMemo, useEffect, useCallback } from 'react';
-import { User, Announcement, Exam, Poll, Role, MeetSession, ClassGroup, AuditLog, Notification, PollOption, SentEmail, EmailConfig, AppContextType } from '../types';
+import { User, Announcement, Exam, Poll, Role, MeetSession, ClassGroup, AuditLog, Notification, PollOption, SentEmail, EmailConfig, AppContextType, ResourceType } from '../types';
 import { supabase } from '../services/supabaseClient';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -489,7 +489,7 @@ export const AppProvider: React.FC<PropsWithChildren> = ({ children }) => {
   };
 
   // --- SHARE FUNCTION (EMAIL with SendGrid Support) ---
-  const shareResource = async (type: 'ANNOUNCEMENT' | 'MEET' | 'EXAM' | 'POLL' | 'TIMETABLE', item: any) => {
+  const shareResource = async (type: ResourceType, item: any) => {
     if (!user) return;
 
     const currentClass = getCurrentClass();

@@ -146,6 +146,9 @@ export interface AppState {
   auditLogs: AuditLog[];
 }
 
+// Définition explicite du type de ressource pour le partage
+export type ResourceType = 'ANNOUNCEMENT' | 'MEET' | 'EXAM' | 'POLL' | 'TIMETABLE';
+
 export interface AppContextType {
   user: User | null;
   users: User[]; 
@@ -205,7 +208,7 @@ export interface AppContextType {
   // Sharing & Config
   emailConfig: EmailConfig;
   updateEmailConfig: (config: EmailConfig) => void;
-  shareResource: (type: 'ANNOUNCEMENT' | 'MEET' | 'EXAM' | 'POLL' | 'TIMETABLE', item: any) => Promise<void>;
+  shareResource: (type: ResourceType, item: any) => Promise<void>;
   resendEmail: (email: SentEmail) => void;
 
   // Admin / Class Management
