@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { ArrowRight, Mail, Lock, Loader2, ShieldCheck, GraduationCap, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { ArrowRight, Mail, Lock, Loader2, ShieldCheck, GraduationCap, Eye, EyeOff, AlertTriangle, UserCheck } from 'lucide-react';
 
 const LOGO_UCAD = "https://upload.wikimedia.org/wikipedia/fr/4/43/Logo_UCAD.png";
 
@@ -78,91 +78,91 @@ export const Login: React.FC = () => {
         </div>
 
         {/* Form Side */}
-        <div className="md:w-1/2 p-8 md:p-12 lg:p-20 flex flex-col justify-center bg-white dark:bg-slate-900 relative transition-colors duration-500">
-           <div className="max-w-sm mx-auto w-full">
-              <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">Bienvenue</h2>
-              <p className="text-slate-500 dark:text-slate-400 mb-8 md:mb-10 text-sm md:text-base">Entrez vos accès pour continuer.</p>
-              
-              {logoutReason && (
-                  <div className="mb-6 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 p-4 rounded-xl text-sm font-bold flex items-start gap-2 border border-orange-100 dark:border-orange-800 animate-in fade-in slide-in-from-top-2">
-                      <AlertTriangle className="w-5 h-5 shrink-0" />
-                      {logoutReason}
-                  </div>
-              )}
+        <div className="md:w-1/2 p-8 md:p-16 flex flex-col justify-center relative bg-white dark:bg-slate-900">
+           
+           <div className="max-w-md mx-auto w-full">
+             <div className="mb-8">
+               <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2 tracking-tight">Bienvenue</h2>
+               <p className="text-slate-500 dark:text-slate-400 font-medium">Entrez vos identifiants pour accéder à votre espace.</p>
+             </div>
 
-              <form onSubmit={handleLogin} className="space-y-5 md:space-y-6">
-                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase ml-1">Email</label>
-                    <div className="relative">
-                       <Mail className="absolute left-4 top-4 w-5 h-5 text-[#87CEEB]" />
-                       <input 
-                         type="email" 
-                         required
-                         value={email}
-                         onChange={e => setEmail(e.target.value)}
-                         className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900 focus:border-[#87CEEB] focus:ring-4 focus:ring-[#87CEEB]/20 rounded-2xl py-4 pl-12 pr-4 font-medium outline-none transition-all text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
-                         placeholder="nom@ecole.com"
-                       />
-                    </div>
-                 </div>
+             {logoutReason && (
+               <div className="mb-6 p-4 rounded-xl bg-orange-50 border border-orange-100 flex items-start gap-3 text-orange-600 text-sm font-bold animate-in slide-in-from-top-2">
+                  <AlertTriangle className="w-5 h-5 shrink-0" />
+                  {logoutReason}
+               </div>
+             )}
 
-                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase ml-1">Mot de passe</label>
-                    <div className="relative">
-                       <Lock className="absolute left-4 top-4 w-5 h-5 text-[#87CEEB]" />
-                       <input 
-                         type={showPassword ? "text" : "password"} 
-                         value={password}
-                         onChange={e => setPassword(e.target.value)}
-                         className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900 focus:border-[#87CEEB] focus:ring-4 focus:ring-[#87CEEB]/20 rounded-2xl py-4 pl-12 pr-12 font-medium outline-none transition-all text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
-                         placeholder="••••••••"
-                         required
-                       />
-                       <button 
-                         type="button"
-                         onClick={() => setShowPassword(!showPassword)}
-                         className="absolute right-4 top-4 text-slate-400 dark:text-slate-500 hover:text-[#87CEEB] transition"
-                         title={showPassword ? "Masquer" : "Afficher"}
-                       >
-                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                       </button>
-                    </div>
-                 </div>
+             {error && (
+               <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 flex items-center gap-3 text-red-600 text-sm font-bold animate-in slide-in-from-top-2">
+                  <AlertTriangle className="w-5 h-5" />
+                  {error}
+               </div>
+             )}
 
-                 <div className="flex justify-between items-center pt-2">
-                    <label className="flex items-center gap-2 cursor-pointer group select-none">
-                       <div className={`w-5 h-5 rounded border flex items-center justify-center transition ${rememberMe ? 'bg-[#87CEEB] border-[#87CEEB]' : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 group-hover:border-[#87CEEB]'}`}>
-                          {rememberMe && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
-                       </div>
-                       <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} className="hidden" />
-                       <span className="text-sm font-bold text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200">Rester connecté</span>
-                    </label>
-
-                    <button 
-                      type="button" 
-                      onClick={handleForgotPassword}
-                      className="text-sm font-bold text-[#0284C7] dark:text-[#38BDF8] hover:underline"
-                    >
-                      Mot de passe oublié ?
-                    </button>
-                 </div>
-
-                 {error && (
-                   <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-xl text-sm font-bold flex items-center gap-2 border border-red-100 dark:border-red-800 animate-in fade-in slide-in-from-top-2">
-                      <ShieldCheck className="w-5 h-5" /> {error}
+             <form onSubmit={handleLogin} className="space-y-5">
+                <div className="space-y-2">
+                   <label className="text-xs font-bold uppercase text-slate-400 tracking-wider ml-1">Email Universitaire</label>
+                   <div className="relative group">
+                      <Mail className="absolute left-4 top-4 w-5 h-5 text-slate-400 group-focus-within:text-[#0EA5E9] transition-colors" />
+                      <input 
+                        type="email" 
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-slate-800 dark:text-white font-medium outline-none focus:ring-4 focus:ring-[#87CEEB]/20 focus:border-[#0EA5E9] transition-all placeholder:text-slate-300"
+                        placeholder="etudiant@ecole.sn"
+                      />
                    </div>
-                 )}
+                </div>
 
-                 <button 
-                   type="submit"
-                   disabled={isLoading}
-                   className="w-full btn-primary font-bold py-4 rounded-2xl shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2"
-                 >
-                   {isLoading ? <Loader2 className="animate-spin" /> : <>Se connecter <ArrowRight className="w-5 h-5" /></>}
-                 </button>
-              </form>
+                <div className="space-y-2">
+                   <label className="text-xs font-bold uppercase text-slate-400 tracking-wider ml-1">Mot de passe</label>
+                   <div className="relative group">
+                      <Lock className="absolute left-4 top-4 w-5 h-5 text-slate-400 group-focus-within:text-[#0EA5E9] transition-colors" />
+                      <input 
+                        type={showPassword ? "text" : "password"} 
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-12 text-slate-800 dark:text-white font-medium outline-none focus:ring-4 focus:ring-[#87CEEB]/20 focus:border-[#0EA5E9] transition-all placeholder:text-slate-300"
+                        placeholder="••••••••"
+                      />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 transition">
+                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                   </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                   <label className="flex items-center gap-2 cursor-pointer group">
+                      <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition ${rememberMe ? 'bg-[#0EA5E9] border-[#0EA5E9]' : 'border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-700'}`}>
+                         {rememberMe && <ArrowRight className="w-3 h-3 text-white rotate-45" />}
+                      </div>
+                      <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="hidden" />
+                      <span className="text-sm font-bold text-slate-500 group-hover:text-slate-700 dark:text-slate-400 transition">Se souvenir de moi</span>
+                   </label>
+                   <button type="button" onClick={handleForgotPassword} className="text-sm font-bold text-[#0EA5E9] hover:text-[#0284C7] transition">
+                      Mot de passe oublié ?
+                   </button>
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-[#0EA5E9] to-[#0284C7] text-white py-4 rounded-2xl font-bold text-lg hover:shadow-lg hover:shadow-[#0EA5E9]/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                   {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <span>Se connecter</span>}
+                   {!isLoading && <ArrowRight className="w-5 h-5" />}
+                </button>
+             </form>
+             
+             <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800 text-center">
+                 <p className="text-slate-400 text-xs font-medium">© 2025 SunuClasse. Accès réservé aux membres autorisés.</p>
+             </div>
            </div>
         </div>
+
       </div>
     </div>
   );

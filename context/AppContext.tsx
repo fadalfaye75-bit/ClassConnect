@@ -238,22 +238,14 @@ export const AppProvider: React.FC<PropsWithChildren> = ({ children }) => {
   // --- Auth ---
   const login = async (email: string, password?: string, rememberMe?: boolean) => {
     try {
-      // 1. Fetch User
-      const { data: dbUser, error } = await supabase
+      // 1. Fetch User strictly from DB
+      const { data: matchedUser, error } = await supabase
         .from('users')
         .select('*')
         .eq('email', email)
         .single();
 
-      let matchedUser = dbUser;
-
-      if (error || !dbUser) {
-        // Fallback to constants for demo if DB is empty/fails
-        const localUser = users.find(u => u.email === email);
-        if (localUser) matchedUser = localUser;
-      }
-
-      if (!matchedUser) {
+      if (error || !matchedUser) {
         return false;
       }
 

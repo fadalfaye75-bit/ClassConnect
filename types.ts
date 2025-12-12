@@ -1,7 +1,7 @@
 
 export enum Role {
   ADMIN = 'ADMIN',            // Super Admin (Gère tout)
-  RESPONSIBLE = 'RESPONSIBLE', // Responsable de classe (Gère sa classe)
+  RESPONSIBLE = 'RESPONSIBLE', // Enseignant / Responsable de classe
   STUDENT = 'STUDENT',         // Élève (Lecture seule + Vote)
 }
 
@@ -205,7 +205,7 @@ export interface AppContextType {
   // Sharing & Config
   emailConfig: EmailConfig;
   updateEmailConfig: (config: EmailConfig) => void;
-  shareResource: (type: 'ANNOUNCEMENT' | 'MEET' | 'EXAM' | 'POLL', item: any) => Promise<void>;
+  shareResource: (type: 'ANNOUNCEMENT' | 'MEET' | 'EXAM' | 'POLL' | 'TIMETABLE', item: any) => Promise<void>;
   resendEmail: (email: SentEmail) => void;
 
   // Admin / Class Management

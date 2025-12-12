@@ -1,5 +1,4 @@
 
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
@@ -34,7 +33,6 @@ import {
   Sun,
   Moon,
   Sparkles,
-  Bot,
   Calendar
 } from 'lucide-react';
 import { Role, Notification } from '../types';
@@ -464,7 +462,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
             <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
                <div className="flex items-center gap-3">
                   <School className="w-5 h-5 text-[#87CEEB]" />
-                  <span className="text-sm font-bold text-slate-600 dark:text-slate-400">Class Connect © 2025</span>
+                  <span className="text-sm font-bold text-slate-600 dark:text-slate-400">SunuClasse © 2025 • Serigne Fallou Faye</span>
                </div>
                
                <div className="flex items-center gap-4">
